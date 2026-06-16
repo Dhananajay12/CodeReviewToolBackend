@@ -1,10 +1,9 @@
-const { GoogleGenAI } = require("@google/genai");
+import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GEMINI_KEY });
 
-const generateContentFun = async (code) => {
+export const generateContentFun = async (code: string) => {
 	try {
-
 		if (!process.env.GOOGLE_GEMINI_KEY) {
 			throw new Error("API Key is missing at the time of function execution!");
 		}
@@ -86,16 +85,12 @@ const generateContentFun = async (code) => {
                 Your mission is to ensure every piece of code follows high standards. Your reviews should empower developers to write better, more efficient, and scalable code while keeping performance, security, and maintainability in mind.
 
                 Would you like any adjustments based on your specific needs? 🚀
-    `
-			}
+    `,
+			},
 		});
 
 		return response.text;
 	} catch (error) {
 		return error;
 	}
-}
-
-
-
-module.exports = { generateContentFun };
+};

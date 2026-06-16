@@ -1,0 +1,139 @@
+// Code Review Portal — Prisma schema
+// Postgres (Neon). Models are PascalCase / fields camelCase in code,
+// mapped to snake_case tables/columns in the database.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: connection URL lives in prisma.config.ts (datasource.url) for
+  // Migrate, and is supplied to PrismaClient via the pg driver adapter at runtime.
+}
+
+// ---------- Enums ----------
+enum ReviewStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+enum IssueSeverity {
+  critical
+  warning
+  suggestion
+}
+
+enum IssueCategory {
+  security
+  performance
+  correctness
+  style
+  accessibility
+}
+
+// ---------- Identity ----------
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions          Session[]
+  githubConnections GithubConnection[]
+  reviews           Review[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id // opaque token from your auth layer (no default)
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ---------- GitHub integration ----------
+model GithubConnection {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  installationId BigInt   @map("installation_id") // GitHub App installation id (not a secret)
+  githubLogin    String   @map("github_login")
+  accountType    String   @default("User") @map("account_type")
+  connectedAt    DateTime @default(now()) @map("connected_at") @db.Timestamptz(6)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositories Repository[]
+
+  @@unique([userId, installationId])
+  @@index([userId])
+  @@map("github_connections")
+}
+
+model Repository {
+  id           String   @id @default(uuid()) @db.Uuid
+  connectionId String   @map("connection_id") @db.Uuid
+  githubRepoId BigInt   @map("github_repo_id") // stable id, survives renames
+  owner        String
+  name         String
+  fullName     String   @map("full_name")
+  isPrivate    Boolean  @default(true) @map("is_private")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  connection GithubConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  reviews    Review[]
+
+  @@unique([connectionId, githubRepoId])
+  @@index([connectionId])
+  @@map("repositories")
+}
+
+// ---------- Review pipeline ----------
+model Review {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String       @map("user_id") @db.Uuid // denormalized for fast ownership scoping
+  repositoryId String       @map("repository_id") @db.Uuid
+  prNumber     Int          @map("pr_number")
+  prTitle      String?      @map("pr_title")
+  status       ReviewStatus @default(queued)
+  summary      String?
+  error        String?
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt  DateTime?    @map("completed_at") @db.Timestamptz(6)
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repository Repository    @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  issues     ReviewIssue[]
+
+  @@index([userId])
+  @@index([repositoryId])
+  @@map("reviews")
+}
+
+model ReviewIssue {
+  id              String        @id @default(uuid()) @db.Uuid
+  reviewId        String        @map("review_id") @db.Uuid
+  filePath        String        @map("file_path")
+  line            Int? // nullable: not every finding maps to a diff line
+  severity        IssueSeverity
+  category        IssueCategory
+  message         String
+  suggestedFix    String?       @map("suggested_fix")
+  included        Boolean       @default(true) // select/deselect state
+  posted          Boolean       @default(false) // pushed to the PR yet?
+  githubCommentId BigInt?       @map("github_comment_id") // set once posted
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_issues")
+}
