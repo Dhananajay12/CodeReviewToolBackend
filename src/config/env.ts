@@ -15,6 +15,14 @@ const envSchema = z.object({
 		.string()
 		.url()
 		.default("http://localhost:5000/auth/google/callback"),
+	GITHUB_APP_ID: z.coerce.number().int().positive(),
+	GITHUB_CLIENT_ID: z.string().min(1, "GITHUB_CLIENT_ID is required"),
+	GITHUB_CLIENT_SECRET: z.string().min(1, "GITHUB_CLIENT_SECRET is required"),
+	// Normalize \n escapes to real newlines so a single-line .env value works too.
+	GITHUB_APP_PRIVATE_KEY: z
+		.string()
+		.min(1, "GITHUB_APP_PRIVATE_KEY is required")
+		.transform((key) => key.replace(/\\n/g, "\n")),
 });
 
 const response = envSchema.safeParse(process.env);

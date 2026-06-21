@@ -6,7 +6,8 @@ export const getUsers = async (req: Request, res: Response) => {
   const user = await prisma.user.findMany();
 
   if (user.length === 0) {
-    return customResponse("No user Found", false, 400, user);
+    res.json(customResponse("No user Found", false, 400, user));
+    return;
   }
-  return customResponse("Users found", true, 200, user);
+  res.json(customResponse("Users found", true, 200, user));
 };

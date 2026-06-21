@@ -5,6 +5,7 @@ export const SESSION_COOKIE_NAME = "session";
 
 export const GOOGLE_STATE_COOKIE = "google_oauth_state";
 export const GOOGLE_VERIFIER_COOKIE = "google_code_verifier";
+export const GITHUB_STATE_COOKIE = "github_oauth_state";
 const OAUTH_FLOW_TTL_MS: number = 10 * 60 * 1000;
 
 // sameSite "none"+secure in prod (cross-site cookies), "lax" in dev — deployment gotcha.
@@ -50,4 +51,16 @@ export const clearOAuthStateCookies = (res: Response): void => {
 	const options: CookieOptions = { ...baseCookieOptions(), sameSite: "lax" };
 	res.clearCookie(GOOGLE_STATE_COOKIE, options);
 	res.clearCookie(GOOGLE_VERIFIER_COOKIE, options);
+};
+
+export const setGithubStateCookie = (res: Response, state: string): void => {
+	res.cookie(GITHUB_STATE_COOKIE, state, {
+		...baseCookieOptions(),
+		sameSite: "lax",
+		maxAge: OAUTH_FLOW_TTL_MS,
+	});
+};
+
+export const clearGithubStateCookie = (res: Response): void => {
+	res.clearCookie(GITHUB_STATE_COOKIE, { ...baseCookieOptions(), sameSite: "lax" });
 };

@@ -64,7 +64,7 @@ export const loginUser = async (
 	const session = await createSession(user.id);
 	return {
 		ok: true,
-		user: { id: user.id, email: user.email, name: user.name },
+		user: { id: user.id, email: user.email, name: user?.name },
 		session,
 	};
 };

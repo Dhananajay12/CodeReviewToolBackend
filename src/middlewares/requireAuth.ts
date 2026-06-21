@@ -10,16 +10,15 @@ export const requireAuth = async (
 ): Promise<void> => {
 	const token: string | undefined = req.cookies?.[SESSION_COOKIE_NAME];
 
-	console.log(req);
 	if (!token) {
-		res.status(401).json(customResponse("Unauthorized", false, 401, null));
+		res.json(customResponse("Unauthorized", false, 401, null));
 		return;
 	}
 
 	const user = await validateSessionToken(token);
 
 	if (!user) {
-		res.status(401).json(customResponse("Unauthorized", false, 401, null));
+		res.json(customResponse("Unauthorized", false, 401, null));
 		return;
 	}
 

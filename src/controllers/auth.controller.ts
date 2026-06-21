@@ -39,7 +39,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 	const response = registerSchema.safeParse(req.body);
 
 	if (!response.success) {
-		res.status(400).json(customResponse("Invalid input", false, 400, null));
+		res.json(customResponse("Invalid input", false, 400, null));
 		return;
 	}
 
@@ -47,23 +47,19 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 	const result = await registerUser(email, password);
 
 	if (!result.ok) {
-		res
-			.status(409)
-			.json(customResponse("Email already in use", false, 409, null));
+		res.json(customResponse("Email already in use", false, 409, null));
 		return;
 	}
 
 	setSessionCookie(res, result.session.token, result.session.expiresAt);
-	res
-		.status(201)
-		.json(customResponse("Registered successfully", true, 201, result.user));
+	res.json(customResponse("Registered successfully", true, 201, result.user));
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
 	const response = loginSchema.safeParse(req.body);
 
 	if (!response.success) {
-		res.status(400).json(customResponse("Invalid input", false, 400, null));
+		res.json(customResponse("Invalid input", false, 400, null));
 		return;
 	}
 
@@ -71,16 +67,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 	const result = await loginUser(email, password);
 
 	if (!result.ok) {
-		res
-			.status(401)
-			.json(customResponse("Invalid email or password", false, 401, null));
+		res.json(customResponse("Invalid email or password", false, 401, null));
 		return;
 	}
 
 	setSessionCookie(res, result.session.token, result.session.expiresAt);
-	res
-		.status(200)
-		.json(customResponse("Logged in successfully", true, 200, result.user));
+	res.json(customResponse("Logged in successfully", true, 200, result.user));
 };
 
 export const logout = async (req: Request, res: Response): Promise<void> => {
@@ -91,7 +83,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 	}
 
 	clearSessionCookie(res);
-	res.status(200).json(customResponse("Logged out", true, 200, null));
+	res.json(customResponse("Logged out", true, 200, null));
 };
 
 export const me = async (req: Request, res: Response): Promise<void> => {
@@ -101,31 +93,29 @@ export const me = async (req: Request, res: Response): Promise<void> => {
 	});
 
 	if (!user) {
-		res.status(401).json(customResponse("Unauthorized", false, 401, null));
+		res.json(customResponse("Unauthorized", false, 401, null));
 		return;
 	}
 
 	const { passwordHash, ...safe } = user;
-	res
-		.status(200)
-		.json(
-			customResponse("Current user", true, 200, {
-				...safe,
-				hasPassword: passwordHash !== null,
-			}),
-		);
+	res.json(
+		customResponse("Current user", true, 200, {
+			...safe,
+			hasPassword: passwordHash !== null,
+		}),
+	);
 };
 
 export const updateMe = async (req: Request, res: Response): Promise<void> => {
 	const parsed = updateProfileSchema.safeParse(req.body);
 
 	if (!parsed.success) {
-		res.status(400).json(customResponse("Invalid input", false, 400, null));
+		res.json(customResponse("Invalid input", false, 400, null));
 		return;
 	}
 
 	const user = await updateProfile(req.userId as string, parsed.data.name);
-	res.status(200).json(customResponse("Profile updated", true, 200, user));
+	res.json(customResponse("Profile updated", true, 200, user));
 };
 
 export const changePasswordHandler = async (
@@ -135,7 +125,7 @@ export const changePasswordHandler = async (
 	const parsed = changePasswordSchema.safeParse(req.body);
 
 	if (!parsed.success) {
-		res.status(400).json(customResponse("Invalid input", false, 400, null));
+		res.json(customResponse("Invalid input", false, 400, null));
 		return;
 	}
 
@@ -147,27 +137,16 @@ export const changePasswordHandler = async (
 
 	if (!result.ok) {
 		if (result.reason === "NO_PASSWORD") {
-			res
-				.status(400)
-				.json(
-					customResponse(
-						"This account has no password set",
-						false,
-						400,
-						null,
-					),
-				);
+			res.json(
+				customResponse("This account has no password set", false, 400, null),
+			);
 			return;
 		}
-		res
-			.status(400)
-			.json(customResponse("Current password is incorrect", false, 400, null));
+		res.json(customResponse("Current password is incorrect", false, 400, null));
 		return;
 	}
 
-	res
-		.status(200)
-		.json(customResponse("Password changed", true, 200, null));
+	res.json(customResponse("Password changed", true, 200, null));
 };
 
 export const googleAuth = async (
@@ -204,9 +183,7 @@ export const googleCallback = async (
 		state !== storedState
 	) {
 		clearOAuthStateCookies(res);
-		res
-			.status(400)
-			.json(customResponse("Invalid OAuth state", false, 400, null));
+		res.json(customResponse("Invalid OAuth state", false, 400, null));
 		return;
 	}
 
@@ -229,8 +206,6 @@ export const googleCallback = async (
 		res.redirect(env.FRONTEND_ORIGIN);
 	} catch {
 		clearOAuthStateCookies(res);
-		res
-			.status(400)
-			.json(customResponse("Google authentication failed", false, 400, null));
+		res.json(customResponse("Google authentication failed", false, 400, null));
 	}
 };

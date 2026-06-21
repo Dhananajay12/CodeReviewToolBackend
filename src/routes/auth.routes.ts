@@ -21,16 +21,14 @@ const loginLimiter = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false,
 	handler: (_req, res) => {
-		res
-			.status(429)
-			.json(
-				customResponse(
-					"Too many attempts. Please try again later.",
-					false,
-					429,
-					null,
-				),
-			);
+		res.json(
+			customResponse(
+				"Too many attempts. Please try again later.",
+				false,
+				429,
+				null,
+			),
+		);
 	},
 });
 

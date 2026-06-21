@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import aiRoutes from "./routes/ai.routes";
 import userRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
+import githubRoutes from "./routes/github.routes";
+import reviewRoutes from "./routes/review.routes";
 import { env } from "./config/env";
 
 import prisma from "./config/db";
@@ -40,5 +42,7 @@ app.get("/health", async (req: Request, res: Response) => {
 app.use("/api/ai", aiRoutes);
 app.use("/api/users", userRoutes);
 app.use("/auth", authRoutes);
+app.use("/github", githubRoutes);
+app.use("/reviews", reviewRoutes);
 
 export default app;
