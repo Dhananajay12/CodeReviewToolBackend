@@ -3,16 +3,11 @@ import { isProduction } from "../config/env";
 
 export const SESSION_COOKIE_NAME = "session";
 
-// Short-lived cookies that carry OAuth state + PKCE verifier across the
-// redirect to Google and back. 10 minutes is plenty for a sign-in.
 export const GOOGLE_STATE_COOKIE = "google_oauth_state";
 export const GOOGLE_VERIFIER_COOKIE = "google_code_verifier";
 const OAUTH_FLOW_TTL_MS: number = 10 * 60 * 1000;
 
-// Shared cookie attributes.
-// - httpOnly: not readable from JS (mitigates XSS token theft)
-// - secure: HTTPS-only in production
-// - sameSite: "none" cross-site in prod (requires secure), "lax" in dev
+// sameSite "none"+secure in prod (cross-site cookies), "lax" in dev — deployment gotcha.
 function baseCookieOptions(): CookieOptions {
 	return {
 		httpOnly: true,
@@ -22,7 +17,6 @@ function baseCookieOptions(): CookieOptions {
 	};
 }
 
-/** Set the session cookie with an expiry matching the session row. */
 export const setSessionCookie = (
 	res: Response,
 	token: string,
@@ -34,16 +28,10 @@ export const setSessionCookie = (
 	});
 };
 
-/** Clear the session cookie (same attributes so the browser matches it). */
 export const clearSessionCookie = (res: Response): void => {
 	res.clearCookie(SESSION_COOKIE_NAME, baseCookieOptions());
 };
 
-/**
- * Store the OAuth `state` and PKCE `codeVerifier` in short-lived httpOnly
- * cookies so the callback can verify them. SameSite=lax so they survive the
- * top-level redirect back from Google.
- */
 export const setOAuthStateCookies = (
 	res: Response,
 	state: string,
@@ -58,7 +46,6 @@ export const setOAuthStateCookies = (
 	res.cookie(GOOGLE_VERIFIER_COOKIE, codeVerifier, options);
 };
 
-/** Clear the OAuth flow cookies once the callback has consumed them. */
 export const clearOAuthStateCookies = (res: Response): void => {
 	const options: CookieOptions = { ...baseCookieOptions(), sameSite: "lax" };
 	res.clearCookie(GOOGLE_STATE_COOKIE, options);

@@ -10,8 +10,6 @@ import prisma from "./config/db";
 
 const app = express();
 
-// Allow the React frontend (different origin) to send/receive the session
-// cookie. `credentials: true` + an explicit origin are required for cookies.
 app.use(
   cors({
     origin: env.FRONTEND_ORIGIN,
@@ -26,7 +24,6 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Hello World");
 });
 
-// Liveness + DB connectivity check. Hit GET /health anytime.
 app.get("/health", async (req: Request, res: Response) => {
   try {
     await prisma.$queryRaw`SELECT 1`;

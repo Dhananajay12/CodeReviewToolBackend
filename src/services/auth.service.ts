@@ -3,7 +3,6 @@ import prisma from "../config/db";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createSession, type CreatedSession } from "../lib/session";
 
-// Only ever expose these user fields to the client.
 export interface SafeUser {
 	id: string;
 	email: string;
@@ -20,11 +19,6 @@ export type LoginResult =
 	| { ok: true; user: SafeUser; session: CreatedSession }
 	| { ok: false; reason: "INVALID_CREDENTIALS" };
 
-/**
- * Register a new user: hash the password, create the user + a session.
- * Duplicate emails are reported as EMAIL_TAKEN (caught via the unique
- * constraint, so it's race-safe — no check-then-insert gap).
- */
 export const registerUser = async (
 	email: string,
 	password: string,
@@ -50,18 +44,13 @@ export const registerUser = async (
 	}
 };
 
-/**
- * Authenticate by email + password. Returns the SAME INVALID_CREDENTIALS
- * result whether the user is missing or the password is wrong, so callers
- * cannot distinguish the two (prevents user enumeration).
- */
+// Returns the same INVALID_CREDENTIALS for missing-user vs wrong-password to prevent user enumeration.
 export const loginUser = async (
 	email: string,
 	password: string,
 ): Promise<LoginResult> => {
 	const user = await prisma.user.findUnique({ where: { email } });
 
-	// No user, or an OAuth-only user with no password set — same generic result.
 	if (!user || !user.passwordHash) {
 		return { ok: false, reason: "INVALID_CREDENTIALS" };
 	}
@@ -83,28 +72,18 @@ export const loginUser = async (
 const GOOGLE_PROVIDER = "google";
 
 export interface GoogleProfile {
-	googleSub: string; // Google's stable user id ("sub")
+	googleSub: string;
 	email: string;
 	emailVerified: boolean;
 	name?: string | null;
 }
 
-/**
- * Resolve a Google profile to a local user, creating/linking as needed:
- *  1. If an account row exists for (google, sub) → use its user.
- *  2. Else if the email is verified and matches an existing user → link by
- *     adding an account row (so password + Google share one user).
- *  3. Else create a new user (no password) + the account row.
- *
- * Auto-linking only happens when Google reports the email as verified, to
- * prevent account takeover via an unverified address.
- */
+// Auto-linking only happens when the email is verified, to prevent account takeover.
 export const findOrCreateGoogleUser = async (
 	profile: GoogleProfile,
 ): Promise<SafeUser> => {
 	const { googleSub, email, emailVerified, name } = profile;
 
-	// 1. Returning Google user — account already linked.
 	const existingAccount = await prisma.account.findUnique({
 		where: {
 			provider_providerAccountId: {
@@ -119,7 +98,6 @@ export const findOrCreateGoogleUser = async (
 		return existingAccount.user;
 	}
 
-	// 2. Same (verified) email already registered — link Google to that user.
 	if (emailVerified) {
 		const existingUser = await prisma.user.findUnique({
 			where: { email },
@@ -138,7 +116,6 @@ export const findOrCreateGoogleUser = async (
 		}
 	}
 
-	// 3. Brand-new user (OAuth-only — passwordHash stays null) + account row.
 	const user = await prisma.user.create({
 		data: {
 			email,
@@ -156,7 +133,6 @@ export const findOrCreateGoogleUser = async (
 	return user;
 };
 
-/** Update the current user's editable profile fields (display name). */
 export const updateProfile = async (
 	userId: string,
 	name: string,
@@ -172,10 +148,6 @@ export type ChangePasswordResult =
 	| { ok: true }
 	| { ok: false; reason: "NO_PASSWORD" | "INVALID_PASSWORD" };
 
-/**
- * Change the current user's password after verifying the current one.
- * NO_PASSWORD is returned for OAuth-only accounts that never set a password.
- */
 export const changePassword = async (
 	userId: string,
 	currentPassword: string,

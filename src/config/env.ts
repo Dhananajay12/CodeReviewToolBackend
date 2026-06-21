@@ -1,8 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
 
-// Validate and type all environment variables in one place. The app should
-// fail fast and loudly if the environment is misconfigured.
 const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "test", "production"])
@@ -22,7 +20,6 @@ const envSchema = z.object({
 const response = envSchema.safeParse(process.env);
 
 if (!response.success) {
-	// Log only the names of the invalid vars, never their values.
 	const invalidKeys = response.error.issues.map((issue) => issue.path.join("."));
 	console.error("❌ Invalid environment variables:", invalidKeys.join(", "));
 	throw new Error("Invalid environment variables");

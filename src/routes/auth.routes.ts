@@ -15,7 +15,6 @@ import { customResponse } from "../helpers/Response";
 
 const router = express.Router();
 
-// Basic brute-force protection on login: max 10 attempts / 15 min / IP.
 const loginLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	limit: 10,
@@ -42,7 +41,6 @@ router.get("/me", requireAuth, me);
 router.patch("/me", requireAuth, updateMe);
 router.post("/change-password", requireAuth, changePasswordHandler);
 
-// Google OAuth (sign in with Google) — reuses the same session + cookie system.
 router.get("/google", googleAuth);
 router.get("/google/callback", googleCallback);
 

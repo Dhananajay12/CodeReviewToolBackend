@@ -28,7 +28,6 @@ import {
 	clearOAuthStateCookies,
 } from "../lib/cookies";
 
-// Shape of the Google OpenID Connect id_token claims we rely on.
 interface GoogleIdTokenClaims {
 	sub: string;
 	email: string;
@@ -36,7 +35,6 @@ interface GoogleIdTokenClaims {
 	name?: string;
 }
 
-// POST /auth/register
 export const register = async (req: Request, res: Response): Promise<void> => {
 	const response = registerSchema.safeParse(req.body);
 
@@ -49,7 +47,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 	const result = await registerUser(email, password);
 
 	if (!result.ok) {
-		// Duplicate email — clean 409, no internals leaked.
 		res
 			.status(409)
 			.json(customResponse("Email already in use", false, 409, null));
@@ -62,7 +59,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 		.json(customResponse("Registered successfully", true, 201, result.user));
 };
 
-// POST /auth/login
 export const login = async (req: Request, res: Response): Promise<void> => {
 	const response = loginSchema.safeParse(req.body);
 
@@ -75,8 +71,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 	const result = await loginUser(email, password);
 
 	if (!result.ok) {
-		// Same generic message whether the email is unknown or the password is
-		// wrong — never reveal which.
 		res
 			.status(401)
 			.json(customResponse("Invalid email or password", false, 401, null));
@@ -89,7 +83,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 		.json(customResponse("Logged in successfully", true, 200, result.user));
 };
 
-// POST /auth/logout — idempotent
 export const logout = async (req: Request, res: Response): Promise<void> => {
 	const token: string | undefined = req.cookies?.[SESSION_COOKIE_NAME];
 
@@ -101,7 +94,6 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 	res.status(200).json(customResponse("Logged out", true, 200, null));
 };
 
-// GET /auth/me — behind requireAuth
 export const me = async (req: Request, res: Response): Promise<void> => {
 	const user = await prisma.user.findUnique({
 		where: { id: req.userId },
@@ -113,8 +105,6 @@ export const me = async (req: Request, res: Response): Promise<void> => {
 		return;
 	}
 
-	// hasPassword lets the UI know whether to offer "change password"
-	// (OAuth-only users have none). Never expose the hash itself.
 	const { passwordHash, ...safe } = user;
 	res
 		.status(200)
@@ -126,7 +116,6 @@ export const me = async (req: Request, res: Response): Promise<void> => {
 		);
 };
 
-// PATCH /auth/me — update editable profile fields (display name). requireAuth.
 export const updateMe = async (req: Request, res: Response): Promise<void> => {
 	const parsed = updateProfileSchema.safeParse(req.body);
 
@@ -139,7 +128,6 @@ export const updateMe = async (req: Request, res: Response): Promise<void> => {
 	res.status(200).json(customResponse("Profile updated", true, 200, user));
 };
 
-// POST /auth/change-password — requireAuth.
 export const changePasswordHandler = async (
 	req: Request,
 	res: Response,
@@ -171,7 +159,6 @@ export const changePasswordHandler = async (
 				);
 			return;
 		}
-		// INVALID_PASSWORD — generic, don't confirm anything beyond "wrong".
 		res
 			.status(400)
 			.json(customResponse("Current password is incorrect", false, 400, null));
@@ -183,8 +170,6 @@ export const changePasswordHandler = async (
 		.json(customResponse("Password changed", true, 200, null));
 };
 
-// GET /auth/google — start the OAuth flow: build the Google URL with a CSRF
-// state + PKCE verifier, stash both in short-lived cookies, then redirect.
 export const googleAuth = async (
 	_req: Request,
 	res: Response,
@@ -198,8 +183,6 @@ export const googleAuth = async (
 	res.redirect(url.toString());
 };
 
-// GET /auth/google/callback — verify state, exchange the code, resolve the
-// user (find-or-create + link), create a session, set the cookie, redirect.
 export const googleCallback = async (
 	req: Request,
 	res: Response,
@@ -213,7 +196,6 @@ export const googleCallback = async (
 	const codeVerifier: string | undefined =
 		req.cookies?.[GOOGLE_VERIFIER_COOKIE];
 
-	// CSRF protection: the returned state must match the one we issued.
 	if (
 		!code ||
 		!state ||
@@ -244,7 +226,6 @@ export const googleCallback = async (
 		clearOAuthStateCookies(res);
 		setSessionCookie(res, session.token, session.expiresAt);
 
-		// Back to the SPA, now carrying the session cookie.
 		res.redirect(env.FRONTEND_ORIGIN);
 	} catch {
 		clearOAuthStateCookies(res);
