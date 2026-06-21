@@ -1,15 +1,19 @@
 import { Request, Response } from "express";
 import { generateContentFun } from "../services/ai.service";
+import { CustomResponse } from "../helpers/Response";
 
 export const getCodeReview = async (req: Request, res: Response) => {
 	const code = req.body.code;
 
 	if (!code) {
-		res.status(400).send("Prompt is required");
-		return;
+	 res.json(CustomResponse("Prompt is required", false, 400, null, null));
 	}
 
 	const response = await generateContentFun(code);
 
-	res.send(response);
+  if(response.status === false){
+		res.json(CustomResponse("Failed to generate code review", false, 500, null, response.error))
+	}
+
+   res.json(CustomResponse("Code Review generated Successfully", true, 200, response.data, null));
 };

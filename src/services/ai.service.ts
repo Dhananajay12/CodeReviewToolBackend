@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { CustomResponse } from "../helpers/Response";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GEMINI_KEY });
 
@@ -89,8 +90,9 @@ export const generateContentFun = async (code: string) => {
 			},
 		});
 
-		return response.text;
+
+		return CustomResponse("Code Review Generated Successfully", true, 200, response.text, null);
 	} catch (error) {
-		return error;
+		return CustomResponse("Failed to generate code review", false, 500, null, error);
 	}
 };

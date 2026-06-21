@@ -38,15 +38,32 @@ enum IssueCategory {
 model User {
   id           String   @id @default(uuid()) @db.Uuid
   email        String   @unique
-  passwordHash String   @map("password_hash")
+  name         String? // display name (optional; may be set from Google profile or in settings)
+  passwordHash String?  @map("password_hash") // null for OAuth-only users (e.g. Google)
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   sessions          Session[]
+  accounts          Account[]
   githubConnections GithubConnection[]
   reviews           Review[]
 
   @@map("users")
+}
+
+// External login providers linked to a user (Google today, extensible to others).
+model Account {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  provider          String // e.g. "google"
+  providerAccountId String   @map("provider_account_id") // provider's stable user id (Google "sub")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
 }
 
 model Session {
