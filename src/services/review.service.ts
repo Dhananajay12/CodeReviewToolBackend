@@ -414,6 +414,7 @@ export interface ReviewListItemDTO {
 	status: string;
 	createdAt: string;
 	issueCount: number;
+	isPosted: boolean;
 }
 
 // List the user's past reviews, newest first.
@@ -431,6 +432,8 @@ export const listReviewsForUser = async (
 			createdAt: true,
 			repository: { select: { fullName: true } },
 			_count: { select: { issues: true } },
+			// any posted issue → this review was pushed to the PR
+			issues: { where: { posted: true }, select: { id: true }, take: 1 },
 		},
 	});
 
@@ -442,6 +445,7 @@ export const listReviewsForUser = async (
 		status: r.status,
 		createdAt: r.createdAt.toISOString(),
 		issueCount: r._count.issues,
+		isPosted: r.issues.length > 0,
 	}));
 };
 

@@ -183,6 +183,7 @@ export const getReposForUser = async (
 
 	for (const connection of connections) {
 		const repos = await listInstallationRepos(Number(connection.installationId));
+		const currentRepoIds = repos.map((repo) => BigInt(repo.id));
 
 		for (const repo of repos) {
 			const saved = await prisma.repository.upsert({
@@ -216,6 +217,17 @@ export const getReposForUser = async (
 				githubRepoId: saved.githubRepoId.toString(),
 			});
 		}
+
+		// Reconcile: drop only never-reviewed repos this connection can no longer
+		// access. Repos with any review are KEPT so review history is preserved
+		// (the repo dropdown already only shows currently-accessible repos).
+		await prisma.repository.deleteMany({
+			where: {
+				connectionId: connection.id,
+				githubRepoId: { notIn: currentRepoIds },
+				reviews: { none: {} },
+			},
+		});
 	}
 
 	return result;

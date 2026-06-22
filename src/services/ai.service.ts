@@ -90,9 +90,9 @@ export const generateContentFun = async (code: string) => {
 			},
 		});
 
-
 		return CustomResponse("Code Review Generated Successfully", true, 200, response.text, null);
 	} catch (error) {
+
 		return CustomResponse("Failed to generate code review", false, 500, null, error);
 	}
 };
